@@ -1,62 +1,58 @@
-      (function  () {
-        var domainNow = document.domain;
-        var scripts = document.getElementsByTagName("script");
-        var curScript = scripts[scripts.length - 1];
-        var imgSrc = curScript.dataset.imgurl;
-        var itunesSrc = curScript.dataset.itunesurl;
-        var androidSrc = curScript.dataset.androidurl;
-        var schemaSrc = curScript.dataset.schemaurl;
+/*
+* 移动端打开WEB端网页,显示下载条,点击尝试打开客户端,并跳转到下载页
+* 使用方法
+* <script src="./dlBar.js" imgurl="./jizhang.png" itunesurl="http://itunes.apple.com/app/id386756967?mt=8" androidurl="http://www.wacai.com/wap/download_wacai.html" iosschemaurl="wacai://home" androidschemaurl="wacai://home">
+* androidurl: 安卓下载页地址
+* itunesurl: IOS下载地址
+* iosschemaurl: IOS打开APP schema url
+* androidschemaurl: android 打开APP schema url
+* schemaurl: 默认打开app schema url
+ */
+(function() {
+  var ua = navigator.userAgent,
+    isAndroid = /android/i.test(ua),
+    isIOS = !isAndroid && /ipad|iphone/i.test(ua);
 
-        creatHtml();
-        var UA = navigator.userAgent;
-        var downBar = document.querySelector("#barab");
-        var wacai = 0, android = 0, ios = 0;
-          if(UA.match(/android/i))
-            android = 1;
-          else if(UA.match(/iP/))
-            ios = 1;
-          if(android || ios ) {
-            downBar.style.display = "block";
-            downloadApp();//下载app
-          }
+  if (!isAndroid && !isIOS) return;
 
-          function creatHtml () {
-                var st = document.createElement("style");
-                var cssText = document.createTextNode(".bottom-bar { display: none; position: fixed;  left: 0; bottom: 0;  width: 100%; } .dl-btn { position: absolute; right: 17.5%; width: 18.75%; } .cl-btn { position: absolute; right: 3.4375%; width: 4.6875%; }  .dl-img { width: 100%;  display: block; }");
-                st.setAttribute("type", "text/css");
-                st.appendChild(cssText);
-                var heads = document.getElementsByTagName("head");
-                if(heads.length) {
-                 heads[0].appendChild(st);
-                }
+  var scripts = document.getElementsByTagName("script"),
+    curScript = scripts[scripts.length - 1],
+    imgSrc = curScript.getAttribute('imgurl'),
+    appBarContent = '<div id="appBar" style="position:fixed;left:0;bottom:0;width:100%;"><img style="width:100%;display:block;" src="' + imgSrc + '" alt="下载条"><span style="position:absolute;right:14.8%;bottom:20%;width:18.55%;height:63%"></span><span style="position:absolute;right:3.4375%;bottom:35%;width:4.6875%;height:30%;"></span></div>';
 
-            document.body.insertAdjacentHTML("beforeEnd", '<div id="barab" style="display: none; position: fixed;  left: 0; bottom: 0;  width: 100%;"><img style="width: 100%;  display: block;" src="'+ imgSrc +'" alt="下载条"><span style="position: absolute; right: 14.8%;  bottom: 20%; width: 18.55%; height: 63%"></span><span style="position: absolute; right: 3.4375%; bottom: 35%;width: 4.6875%; height: 30%;"></span></div>');
-          }
-          function downloadApp () {
-              var dlNow = document.querySelector("#barab span");
-              var closeBtn = dlNow.nextElementSibling;
-              closeBtn.addEventListener("touchend", function  (event) {
-                 downBar.style.display = "none";
-              });
-              dlNow.addEventListener("touchend", function  (event) {
-                var t;
-                var clickTime = new Date();
-                var ifr = document.createElement('iframe');
-                ifr.src = schemaSrc;
-                ifr.style.display = 'none';
-                document.body.appendChild(ifr);
-                t = window.setTimeout(function() {
-                    var endTime = Date.now();
-                    if (!clickTime || endTime - clickTime < 600 + 200) { 
-                        if(android)
-                            window.location = androidSrc;
-                        else if(ios)
-                            window.location = itunesSrc;
-                    } 
-                }, 600);
-                window.onblur = function() {
-                    clearTimeout(t);
-                };
-              });
-          }
-          })();
+  document.body.insertAdjacentHTML("beforeEnd", appBarContent);
+
+  var appBar = document.querySelector("#appBar"),
+    appBarBtns = appBar.querySelectorAll("span"),
+    schemaurl = function() {
+      var _schemaurl = curScript.getAttribute('schemaurl');
+
+      return _schemaurl ? _schemaurl : isIOS ? curScript.getAttribute('iosschemaurl') : curScript.getAttribute('androidschemaurl');
+    }();
+  
+  appBarBtns[1].addEventListener("touchend", function() {
+    appBar.style.display = "none";
+  });
+  
+  appBarBtns[0].addEventListener("touchend", function() {
+    var timer,
+      clickTime = Date.now(),
+      oIframe = document.createElement('iframe');
+      
+    oIframe.src = schemaurl;
+    oIframe.style.display = 'none';
+    document.body.appendChild(oIframe);
+    timer = setTimeout(function() {
+      var timeOutTime = Date.now();
+
+      if (!clickTime || timeOutTime - clickTime < 800) {
+        location.href = isIOS ? curScript.getAttribute('itunesurl') : curScript.getAttribute('androidurl');
+      }
+    }, 600);
+
+    window.addEventListener("blur", function() {
+      clearTimeout(timer);
+      window.removeEventListener("blur", arguments.callee, false);
+    }, false);
+  });
+})();
